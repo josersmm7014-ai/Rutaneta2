@@ -1,0 +1,62 @@
+name: Build APK from ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extraer ZIP y preparar proyecto
+        run: |
+          mkdir source
+          unzip -q rutaneta_fase1.zip -d source
+          cd source
+          flutter create --org com.rutaviva --project-name rutaviva --platforms=android _scaffold
+          rm -rf _scaffold/lib
+          cp -r lib _scaffold/lib
+          cp -r assets _scaffold/assets
+          cp -r test _scaffold/test
+          cp pubspec.yaml _scaffold/pubspec.yaml
+          python3 tool/patch_manifest.py _scaffold/android/app/src/main/AndroidManifest.xml
+          rm -f _scaffold/test/widget_test.dart
+
+      - name: Compilar APK
+        working-directory: source/_scaffold
+        run: |
+          flutter pub get
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          candidates = sorted(Path.home().glob('.pub-cache/hosted/pub.dev/light_sensor-*/android/build.gradle'))
+          if not candidates:
+              raise SystemExit('No se encontró light_sensor')
+          path = candidates[-1]
+          text = path.read_text()
+          text = re.sub(r'buildscript\s*\{.*?\n\}\n', '', text, count=1, flags=re.S)
+          text = text.replace('jcenter()', 'mavenCentral()')
+          path.write_text(text)
+          print(f'Parche aplicado a {path}')
+          PY
+          echo 'android.newDsl=false' >> android/gradle.properties
+          flutter test
+          dart run flutter_launcher_icons
+          flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rutaneta-apk
+          path: source/_scaffold/build/app/outputs/flutter-apk/app-release.apk
