@@ -41,6 +41,16 @@ jobs:
           cp pubspec.yaml _scaffold/pubspec.yaml
           python3 tool/patch_manifest.py _scaffold/android/app/src/main/AndroidManifest.xml
           rm -f _scaffold/test/widget_test.dart
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('_scaffold/android/app/build.gradle.kts')
+          text = path.read_text()
+          marker = '            signingConfig = signingConfigs.getByName("debug")'
+          replacement = marker + '\n            isMinifyEnabled = false\n            isShrinkResources = false'
+          if 'isMinifyEnabled = false' not in text:
+              text = text.replace(marker, replacement, 1)
+          path.write_text(text)
+          PY
 
       - name: Compilar APK
         working-directory: source/_scaffold
