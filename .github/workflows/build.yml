@@ -23,7 +23,7 @@ jobs:
       - name: Extraer ZIP y preparar proyecto
         run: |
           mkdir source
-          unzip -q rutaneta_fase1.zip -d source
+          unzip -q rutaneta_fase1 (1).zip -d source
           cd source
           flutter create --org com.rutaviva --project-name rutaviva --platforms=android _scaffold
           rm -rf _scaffold/lib
