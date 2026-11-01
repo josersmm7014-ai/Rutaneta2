@@ -22,8 +22,16 @@ jobs:
 
       - name: Extraer ZIP y preparar proyecto
         run: |
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo 'No se encontró ningún archivo ZIP en la raíz del repositorio.'
+            echo 'Archivos encontrados:'
+            find . -maxdepth 2 -type f -print
+            exit 1
+          fi
+          echo "Usando: $ZIP_FILE"
           mkdir source
-          unzip -q rutaneta_fase1 (1).zip -d source
+          unzip -q "$ZIP_FILE" -d source
           cd source
           flutter create --org com.rutaviva --project-name rutaviva --platforms=android _scaffold
           rm -rf _scaffold/lib
